@@ -33,3 +33,7 @@ Los botones y endpoints de descarga se reservan al administrador. Ninguna web pu
 ## Validación de esta entrega
 
 Compilación de producción correcta. Pruebas locales con Worker y D1: rechazo anónimo, bloqueo de URL directa de medios (incluyendo extensión codificada), alta, sesión, permisos de lector, descarga de administrador, desactivación, caducidad, renovación y reproducción HTTP 206. No se han utilizado cuentas reales para las pruebas.
+
+## Compilación en Cloudflare Workers Builds
+
+El comando de despliegue puede mantenerse como `npx wrangler deploy`. La configuración de Wrangler ejecuta automáticamente `npm run build` antes de recoger los archivos de `dist`. No es necesario guardar `dist` en Git. Esta corrección evita el error de carpeta de assets inexistente; no sustituye la creación y vinculación de D1/R2 descrita arriba.
