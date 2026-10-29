@@ -19,7 +19,7 @@ export async function exportBilbobusMp4({videoUrl,route,points,demoMode,offset=0
   const audioTrack=await input.getPrimaryAudioTrack();
   if(audioTrack&&(!await audioTrack.canDecode()||!await canEncodeAudio('aac',{sampleRate:48000,numberOfChannels:2})))throw Error('No se puede conservar el audio de este archivo en este navegador. Prueba Chrome o Edge.');
   onProgress({percent:0,label:'Preparando mapa y vídeo…'});
-  const header=await image(headerUrl);abort(signal);
+  const header=await image(headerUrl),watermark=await image(new URL('bilbobus.jpg',new URL(headerUrl,location.href)).href);abort(signal);
   host=document.createElement('div');Object.assign(host.style,{position:'fixed',left:'-10000px',top:'0',width:'850px',height:'456px',pointerEvents:'none'});document.body.append(host);
   const shape=points.map(p=>p.coordinates);
   exportMap=new Map({container:host,interactive:false,attributionControl:false,canvasContextAttributes:{preserveDrawingBuffer:true},style:{version:8,sources:{base:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256},route:{type:'geojson',data:line(shape)}},layers:[{id:'base',type:'raster',source:'base'},{id:'halo',type:'line',source:'route',paint:{'line-color':'#fff','line-width':8}},{id:'route',type:'line',source:'route',paint:{'line-color':'#ef352a','line-width':4}}]}});
@@ -46,6 +46,7 @@ export async function exportBilbobusMp4({videoUrl,route,points,demoMode,offset=0
    stops.forEach((p,i)=>{ctx.beginPath();ctx.arc(p.x,p.y,i===active?13:10,0,Math.PI*2);ctx.fillStyle=i===active?'#263b43':'#e83b2f';ctx.fill();ctx.strokeStyle='white';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='white';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText(String(i+1),p.x,p.y+3);});
    ctx.beginPath();ctx.arc(loc.x,loc.y,7,0,Math.PI*2);ctx.fillStyle='#087d87';ctx.fill();ctx.strokeStyle='white';ctx.lineWidth=2;ctx.stroke();ctx.restore();ctx.textAlign='left';
    ctx.fillStyle='#17292f';ctx.fillRect(894,251,362,204);const scale=Math.min(362/decoded.canvas.width,204/decoded.canvas.height),vw=decoded.canvas.width*scale,vh=decoded.canvas.height*scale;ctx.drawImage(decoded.canvas,894+(362-vw)/2,251+(204-vh)/2,vw,vh);
+   ctx.save();ctx.globalAlpha=.65;ctx.drawImage(watermark,1185,395,60,54);ctx.restore();
    text('PARADA · PUNTO DE ATENCIÓN',896,487,12,'#d33b2e',true);text(`${String(active+1).padStart(2,'0')} / ${route.stops.length}`,896,520,25,'#24353b',true);
    const name=route.stops[active].name;const words=name.split(' ');let row='',y=552;for(const word of words){ctx.font='bold 17px Arial';if(ctx.measureText(row+' '+word).width>345){text(row,896,y,17,'#24353b',true);y+=23;row=word;}else row+=(row?' ':'')+word;}text(row,896,y,17,'#24353b',true);
    text(`Código ${route.stops[active].code}`,896,615,13,'#6d7b80');text(`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')} / ${Math.floor(duration/60)}:${String(Math.floor(duration%60)).padStart(2,'0')}`,896,647,17,'#24353b',true);ctx.fillStyle='#d9dedb';ctx.fillRect(896,660,360,5);ctx.fillStyle='#e73529';ctx.fillRect(896,660,360*t/duration,5);

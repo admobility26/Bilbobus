@@ -1,10 +1,22 @@
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from functools import partial
 from pathlib import Path
-import argparse, os, re, webbrowser
+import argparse, os, re, webbrowser, json
 
 class MediaHandler(SimpleHTTPRequestHandler):
     """Serve local files with byte ranges so browsers can seek within MP4s."""
+    def do_GET(self):
+        if self.path == '/api/session':
+            payload=json.dumps({'mode':'demo','user':{'id':'local-demo','username':'admin-demo','role':'admin','expiresAt':None,'active':True}}).encode()
+            self.send_response(200)
+            self.send_header('Content-Type','application/json')
+            self.send_header('Cache-Control','no-store')
+            self.send_header('Content-Length',str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+            return
+        return super().do_GET()
+
     def send_head(self):
         self.byte_count = None
         path = Path(self.translate_path(self.path))

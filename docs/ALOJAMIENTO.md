@@ -1,24 +1,35 @@
-# GPX, vídeos y usuarios autorizados
+# Acceso y alojamiento de Bilbobus
 
-Estado actual: muestra local, sin biblioteca compartida ni autenticación de producción. Subir el código a GitHub no activa estos servicios. Los únicos vídeos incorporados a `public/assets` son simulaciones ilustradas. No colocar grabaciones privadas ni GPX de usuarios en esa carpeta ni en Git.
+El repositorio guarda el código y los vídeos ilustrados de muestra. No es el alojamiento de las grabaciones privadas. No se han contratado recursos, comprado un dominio ni desplegado la web.
 
-## Arquitectura propuesta (pendiente de configurar)
+## Implementado y probado localmente
 
-- **Aplicación**: sitio web servido por Cloudflare Workers/Pages.
-- **Archivos**: bucket privado Cloudflare R2 para GPX, vídeos originales, miniaturas y exportaciones MP4 compartidas. Sin dominio público ni endpoint r2.dev habilitado.
-- **Catálogo y permisos**: base de datos D1 con líneas, sentidos, versiones, claves de objetos y permisos por usuario/grupo.
-- **Identificación**: proveedor de identidad o Cloudflare Access para el personal autorizado. El servidor verifica la sesión y el permiso sobre cada línea, no solo el inicio de sesión.
-- **Reproducción**: endpoint autenticado que transmite el objeto desde R2 y admite solicitudes HTTP Range para avanzar por el vídeo. Para subida directa, URL firmada de corta duración expedida solo a editores autorizados. Las URLs firmadas son credenciales temporales: cualquiera que las posea puede utilizarlas hasta su caducidad.
-- **Roles**: administrador (usuarios y permisos), editor (subir y versionar recorridos), lector (ver las líneas asignadas). El permiso para descargar/exportar puede separarse del de visualizar. Una vez descargado un MP4, no se puede revocar la copia local.
+- Inicio de sesión con usuario y contraseña, creados por el administrador.
+- Duración en días, renovación desde hoy, desactivación y cambio de contraseña. Estos cambios revocan las sesiones anteriores.
+- Contraseñas derivadas con PBKDF2, sesiones en cookies HttpOnly, validación de vigencia en el servidor y límite de intentos de acceso.
+- Solo el administrador dispone de gestión de usuarios, importación local, exportación MP4 y endpoints de descarga.
+- Vídeos de muestra con el logo Bilbobus grabado en sus fotogramas; exportaciones con marca de agua adicional.
+- API para lectura autenticada de archivos de un bucket privado R2, con reproducción por rangos.
 
-Flujo: el editor sube GPX + vídeo → valida y sincroniza → publica una versión en el catálogo interno → el usuario inicia sesión → el servidor verifica su acceso → recibe los archivos permitidos.
+La muestra abierta con ABRIR-MUESTRA.command funciona como administrador local, sin cuentas reales. No debe usarse ese servidor local para publicar la web. La versión con servidor utiliza server/worker.js y exige iniciar sesión.
 
-Ejemplo de organización interna: `lineas/10/ida/version-id/recorrido.gpx`, `video.mp4` y `miniatura.jpg`. La aplicación utiliza identificadores de la base de datos, no acepta rutas arbitrarias del cliente.
+## Alojamiento previsto
 
-## Qué queda por hacer
+Cloudflare Workers sirve la aplicación y comprueba cada acceso. D1 guarda usuarios, caducidades, sesiones y el catálogo de medios. R2 privado guarda los GPX y vídeos; no se habilita acceso público al bucket. Un usuario vigente podrá ver los recorridos publicados. En esta versión todos los usuarios vigentes comparten el catálogo, sin asignación individual por línea.
 
-Elegir la cuenta y el dominio de Cloudflare, crear y vincular R2/D1, configurar identidad y grupos, implementar la API de catálogo/subida/lectura, migrar los archivos reales y probar denegación de acceso, revocación y reproducción por rangos. No hay credenciales ni recursos de nube creados en esta entrega. No se ha desplegado la aplicación.
+Ejemplo de archivos privados: lineas/10/ida/v1/recorrido.gpx y video.mp4. El servidor resuelve identificadores del catálogo; no acepta claves arbitrarias del usuario.
 
-Referencias oficiales:
-- https://developers.cloudflare.com/r2/api/s3/presigned-urls/
-- https://developers.cloudflare.com/r2/api/workers/workers-api-reference/
+## Activación futura
+
+1. Crear D1 y R2 en la cuenta elegida y sustituir el identificador provisional de wrangler.jsonc.
+2. Aplicar server/schema.sql a D1, configurar ADMIN_SETUP_TOKEN como secreto y publicar el Worker con su dominio HTTPS.
+3. Crear el administrador mediante POST /api/setup con Authorization: Bearer y el secreto, Origin del mismo dominio y JSON con username/password. El endpoint solo permite la creación inicial. Retirar el secreto al terminar.
+4. Incorporar el panel de subida y selección del catálogo a la interfaz. Los botones actuales de importar GPX/vídeo solo cargan archivos durante la sesión local; todavía no publican medios en R2.
+5. Procesar los vídeos reales para grabar permanentemente el logo antes de publicarlos. El campo watermarked del catálogo es una declaración del proceso de preparación, no un detector automático de logos.
+6. Probar el despliegue real, copias de seguridad y la reproducción de grabaciones largas antes de dar acceso a clientes.
+
+Los botones y endpoints de descarga se reservan al administrador. Ninguna web puede impedir por completo que un usuario autorizado guarde los bytes reproducidos o grabe la pantalla. La marca de agua queda dentro de los vídeos preparados y de las exportaciones.
+
+## Validación de esta entrega
+
+Compilación de producción correcta. Pruebas locales con Worker y D1: rechazo anónimo, bloqueo de URL directa de medios (incluyendo extensión codificada), alta, sesión, permisos de lector, descarga de administrador, desactivación, caducidad, renovación y reproducción HTTP 206. No se han utilizado cuentas reales para las pruebas.

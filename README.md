@@ -25,3 +25,7 @@ Los archivos seleccionados se usan localmente, sin subirse. La biblioteca compar
 Nombres de paradas: PDF facilitado por el usuario (01/09/2026). Coordenadas, trazado y catálogo: Ayuntamiento de Bilbao / Bilbao Open Data, descargados el 29/10/2026 (CC BY 3.0 ES). Mapa © OpenStreetMap contributors. Imágenes de identidad facilitadas por el usuario. Los vídeos representan una escena genérica ilustrada, no calles ni tiempos reales.
 
 El código heredado de Rutas AD conserva su licencia y atribución; ver LICENSE y COPYRIGHT.md. `src/main.jsx` carga la pantalla específica de Bilbobus; las pantallas heredadas no se presentan en esta muestra. Este proyecto no modifica el repositorio original de Rutas AD. No es una aplicación oficial de Bilbobus.
+
+## Usuarios, permisos y marca de agua
+
+El servidor incluido permite al administrador crear usuario, contraseña y duración en días, renovar o desactivar accesos. Solo el administrador ve las herramientas de descarga/exportación. Las simulaciones y las exportaciones MP4 incorporan el logo Bilbobus. El modo local sigue abierto como administrador de demostración; las cuentas reales requieren activar el servidor y la base de datos. Consulta [alojamiento y activación](docs/ALOJAMIENTO.md). El panel para subir medios a la biblioteca privada queda pendiente de la fase de alojamiento.

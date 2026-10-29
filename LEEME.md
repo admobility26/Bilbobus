@@ -44,3 +44,5 @@ Para editar: instalar las dependencias de package.json en esta carpeta y ejecuta
 La carátula facilitada se muestra completa en el encabezado y en el MP4. Usa **Exportar MP4** y, cuando termine, **Descargar MP4**. Se exporta el sentido seleccionado completo, independientemente de la posición o velocidad de previsualización. H.264, 1280×720, 20 fps; límite de muestra: 5 minutos. Se conserva audio compatible en AAC cuando lo haya. Requiere WebCodecs H.264; admite cancelación sin generar archivos incompletos. Verificada una descarga completa de la simulación de ida: 62 s, 1240 fotogramas decodificados correctamente, con mapa y PIP visibles.
 
 Alojamiento compartido: todavía no configurado. Ver `docs/ALOJAMIENTO.md` para la propuesta R2 privado + API autenticada + permisos por línea.
+
+ACTUALIZACIÓN: se incluye gestión de usuarios con contraseña y caducidad para el futuro servidor, permisos de administrador y marca de agua Bilbobus en vídeos de muestra y MP4 exportados. La muestra local abre como administrador sin crear cuentas reales. El dominio, almacenamiento privado y publicación siguen pendientes; ver docs/ALOJAMIENTO.md.
