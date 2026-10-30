@@ -29,3 +29,7 @@ Crear recorrido desde GPX, añadir vídeo original y PDF opcional de consulta. E
 ## Publicar una exportación y crear usuarios
 
 Los nombres de usuario admiten espacios (3–64 caracteres); las contraseñas nuevas requieren al menos 10 caracteres. En Biblioteca, elige línea y sentido, pulsa Gestionar PDF, vídeo y GPX y selecciona el archivo en «MP4 final exportado · visible para usuarios». El archivo queda asociado al recorrido. Los lectores ven una biblioteca de MP4 finales y reproducen la última exportación de cada recorrido. No tienen acceso a originales, GPX o PDF. La descarga sigue reservada al administrador. En local esto publica dentro de la biblioteca local; para acceso remoto debe trasladarse la biblioteca al servidor elegido.
+
+## Biblioteca de usuarios: vídeo final y PDF
+
+Los lectores tienen la misma navegación por líneas y recorridos, con botones de cabecera funcionales. Cada recorrido ofrece Vídeo PIP y Consultar PDF de forma independiente: puede consultarse un PDF antes de disponer del MP4. El PDF se representa con un visor de páginas sin herramientas de edición o descarga de la aplicación. La API permite lectura de PDF y exportaciones a usuarios vigentes, pero rechaza la descarga explícita, los GPX y los vídeos originales. Como cualquier contenido mostrado en una web, no se garantiza impedir capturas o copias mediante herramientas externas.
