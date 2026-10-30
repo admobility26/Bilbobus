@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {attachments} from '../server/attachments.js';
-const env={DB:{prepare(sql){return {bind(){return this;},async first(){return {id:'route-1'};},async run(){},async all(){return {results:[]};}}}};
+const env={DB:{prepare(sql){return {bind(){return this;},async first(){return {id:'route-1'};},async run(){},async all(){return {results:[]};}};}}};
 const url=new URL('https://test.example/api/routes/route-1/files?kind=pdf&filename=test.pdf');
 test('library reports disabled storage without pretending to save',async()=>{const r=await attachments(new Request(url),env,{role:'admin'},url.pathname,url);assert.deepEqual(await r.json(),{files:[],storageReady:false});});
 test('reader cannot upload and unconfigured storage returns explicit error',async()=>{for(const [role,status] of [['reader',403],['admin',503]]){const r=await attachments(new Request(url,{method:'PUT',body:'test'}),env,{role},url.pathname,url);assert.equal(r.status,status);}});
