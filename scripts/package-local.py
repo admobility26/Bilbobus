@@ -12,6 +12,7 @@ with zipfile.ZipFile(filename,'w',zipfile.ZIP_DEFLATED) as z:
   for p in (root/folder).rglob('*'):
    if p.is_file():z.write(p,Path('Bilbobus')/p.relative_to(root))
  z.write(root/'package.json','Bilbobus/package.json')
+ z.write(root/'ABRIR-EDITOR.command','Bilbobus/ABRIR-EDITOR.command')
  if with_data:
   data=root/'datos-locales'
   if not (data/'bilbobus.sqlite').exists():raise SystemExit('No hay biblioteca local para exportar.')
