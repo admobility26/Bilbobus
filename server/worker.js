@@ -6,7 +6,7 @@ const json=(value,status=200,headers={})=>new Response(JSON.stringify(value),{st
 const publicUser=u=>({id:u.id,username:u.username,role:u.role,expiresAt:u.expires_at,active:!!u.active});
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status});};
 const normalize=s=>String(s||'').trim().toLowerCase();
-const checkUsername=s=>{if(!/^[a-z0-9.@_-]{3,64}$/.test(s))fail('Usuario: entre 3 y 64 letras, números, puntos, guiones o guiones bajos.');};
+const checkUsername=s=>{if(!/^[a-z0-9.@_ -]{3,64}$/.test(s))fail('Usuario: entre 3 y 64 letras, números, espacios, puntos, @ o guiones.');};
 const checkPassword=s=>{if(typeof s!=='string'||s.length<10||s.length>128)fail('La contraseña debe tener entre 10 y 128 caracteres.');};
 const expiry=days=>{if(!Number.isInteger(days)||days<1||days>3650)fail('La duración debe ser de 1 a 3650 días.');return Date.now()+days*DAY;};
 const cookieName=url=>url.protocol==='https:'?COOKIE:'bilbobus-local';

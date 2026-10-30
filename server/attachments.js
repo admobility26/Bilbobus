@@ -5,11 +5,11 @@ export async function attachments(request,env,user,path,url){
  const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
  if(!await env.DB.prepare('SELECT id FROM routes WHERE id=?').bind(routeId).first())return reply({error:'Recorrido no encontrado.'},404);
  await env.DB.prepare(schema).run();
- if(!id&&request.method==='GET'){const {results}=await env.DB.prepare('SELECT id,kind,filename,size FROM attachments WHERE route_id=? ORDER BY created_at DESC').bind(routeId).all();return reply({files:results,storageReady:!!env.MEDIA,localEditor:!!env.LOCAL_EDITOR,maxUploadBytes:env.MAX_UPLOAD_BYTES||90*1024*1024});}
+ if(!id&&request.method==='GET'){const {results}=await env.DB.prepare('SELECT id,kind,filename,size FROM attachments WHERE route_id=? ORDER BY created_at DESC').bind(routeId).all();return reply({files:user.role==='admin'?results:results.filter(f=>f.kind==='export'),storageReady:!!env.MEDIA,localEditor:!!env.LOCAL_EDITOR,maxUploadBytes:env.MAX_UPLOAD_BYTES||90*1024*1024});}
  if(request.method==='PUT'){
   if(user.role!=='admin')return reply({error:'Solo el administrador puede subir archivos.'},403);
   if(!env.MEDIA)return reply({error:'Activa R2 y conecta el almacén privado para guardar archivos.'},503);
-  const kind=url.searchParams.get('kind'),filename=url.searchParams.get('filename')||'',type={'pdf':'application/pdf','gpx':'application/gpx+xml','video':'video/mp4'}[kind];
+  const kind=url.searchParams.get('kind'),filename=url.searchParams.get('filename')||'',type={'pdf':'application/pdf','gpx':'application/gpx+xml','video':'video/mp4','export':'video/mp4'}[kind];
   const size=Number(request.headers.get('Content-Length'));
   if(id||!type||!filename||filename.length>255||!Number.isInteger(size)||size<=0||size>(env.MAX_UPLOAD_BYTES||90*1024*1024))return reply({error:'Archivo no válido o superior al límite de subida.'},400);
   if(kind==='video'&&!env.LOCAL_EDITOR&&request.headers.get('X-Bilbobus-Watermarked')!=='yes')return reply({error:'El vídeo debe tener el logo Bilbobus grabado antes de publicarse.'},400);
@@ -20,7 +20,7 @@ export async function attachments(request,env,user,path,url){
  }
  if(id&&['GET','HEAD'].includes(request.method)){
   const file=await env.DB.prepare('SELECT * FROM attachments WHERE route_id=? AND id=?').bind(routeId,id).first();if(!file)return reply({error:'Archivo no encontrado.'},404);
-  if((env.LOCAL_EDITOR||url.searchParams.has('download')||file.kind==='pdf')&&user.role!=='admin')return reply({error:'Solo el administrador puede descargar documentos.'},403);
+  if((file.kind!=='export'||url.searchParams.has('download'))&&user.role!=='admin')return reply({error:'Solo el administrador puede descargar documentos.'},403);
   if(!env.MEDIA)return reply({error:'Almacén no disponible.'},503);
   const object=await env.MEDIA.get(file.object_key,{range:request.headers});if(!object)return reply({error:'Archivo no encontrado.'},404);
   const h=new Headers({'Content-Type':file.content_type,'Cache-Control':'private, no-store','Accept-Ranges':'bytes','X-Content-Type-Options':'nosniff','Content-Disposition':`${url.searchParams.has('download')?'attachment':'inline'}; filename="${file.filename.replace(/[^a-zA-Z0-9._-]/g,'_')}"`});

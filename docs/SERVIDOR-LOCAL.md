@@ -25,3 +25,7 @@ El exportador acepta hasta 3600 segundos de vídeo por sentido y ofrece guardar 
 ## Flujo actualizado
 
 Crear recorrido desde GPX, añadir vídeo original y PDF opcional de consulta. El PDF ya no determina el itinerario en los recorridos nuevos. Los puntos inicial/final del GPX son referencias del recorrido, no paradas oficiales inferidas. Los originales en el servidor local son accesibles solo por administrador. El logo Bilbobus se graba en la exportación, sin exigir marca previa al original local. Abrir con ABRIR-EDITOR.command o http://127.0.0.1:5190. La cuenta local del propietario se ha sincronizado una vez con su cuenta web; futuros cambios de contraseña son independientes. La contraseña no está en el código ni en Git.
+
+## Publicar una exportación y crear usuarios
+
+Los nombres de usuario admiten espacios (3–64 caracteres); las contraseñas nuevas requieren al menos 10 caracteres. En Biblioteca, elige línea y sentido, pulsa Gestionar PDF, vídeo y GPX y selecciona el archivo en «MP4 final exportado · visible para usuarios». El archivo queda asociado al recorrido. Los lectores ven una biblioteca de MP4 finales y reproducen la última exportación de cada recorrido. No tienen acceso a originales, GPX o PDF. La descarga sigue reservada al administrador. En local esto publica dentro de la biblioteca local; para acceso remoto debe trasladarse la biblioteca al servidor elegido.
