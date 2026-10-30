@@ -40,7 +40,7 @@ export async function exportBilbobusMp4({videoUrl,route,points,demoMode,offset=0
    abort(signal);if(!decoded)throw Error('Falta un fotograma del vídeo.');const t=index/20,dt=Math.min(.05,duration-t),fraction=Math.max(0,Math.min(1,!demoMode&&clock.timed?(t-offset)/clock.duration:t/duration));const pos=pointAt(points,fraction,clock),loc=exportMap.project(pos.point.coordinates);
    const active=demoMode?Math.min(route.stops.length-1,Math.floor((t+.015)/4)):route.stops.reduce((best,s,i)=>Math.hypot(stops[i].x-loc.x,stops[i].y-loc.y)<Math.hypot(stops[best].x-loc.x,stops[best].y-loc.y)?i:best,0);
    ctx.fillStyle='#f5f5f2';ctx.fillRect(0,0,1280,720);ctx.drawImage(header,0,0,1280,206);
-   text(`LÍNEA 10  ·  ${route.name}`,24,238,19,'#263b43',true);text(demoMode?'SIMULACIÓN · escena y tiempos ilustrativos':'RECORRIDO · vídeo y mapa',896,238,13,'#cf372c',true);
+   text(`LÍNEA ${route.line||'10'}  ·  ${route.name}`,24,238,19,'#263b43',true);text(demoMode?'SIMULACIÓN · escena y tiempos ilustrativos':'RECORRIDO · vídeo y mapa',896,238,13,'#cf372c',true);
    ctx.drawImage(background,24,251);ctx.save();ctx.beginPath();ctx.rect(24,251,850,456);ctx.clip();ctx.translate(24,251);
    ctx.strokeStyle='#087d87';ctx.lineWidth=4;ctx.beginPath();projected.slice(0,pos.index+1).forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.lineTo(loc.x,loc.y);ctx.stroke();
    stops.forEach((p,i)=>{ctx.beginPath();ctx.arc(p.x,p.y,i===active?13:10,0,Math.PI*2);ctx.fillStyle=i===active?'#263b43':'#e83b2f';ctx.fill();ctx.strokeStyle='white';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='white';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.fillText(String(i+1),p.x,p.y+3);});

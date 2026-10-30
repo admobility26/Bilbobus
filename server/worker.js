@@ -1,15 +1,16 @@
+import {validateRoute,routesSchema} from './routes.js';
 import {digest,passwordHash,verifyPassword} from './password.js';
 const DAY=86400000,COOKIE='__Host-bilbobus';
 const json=(value,status=200,headers={})=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store',...headers}});
 const publicUser=u=>({id:u.id,username:u.username,role:u.role,expiresAt:u.expires_at,active:!!u.active});
 const fail=(message,status=400)=>{throw Object.assign(Error(message),{status});};
 const normalize=s=>String(s||'').trim().toLowerCase();
-const checkUsername=s=>{if(!/^[a-z0-9._-]{3,64}$/.test(s))fail('Usuario: entre 3 y 64 letras, números, puntos, guiones o guiones bajos.');};
+const checkUsername=s=>{if(!/^[a-z0-9.@_-]{3,64}$/.test(s))fail('Usuario: entre 3 y 64 letras, números, puntos, guiones o guiones bajos.');};
 const checkPassword=s=>{if(typeof s!=='string'||s.length<10||s.length>128)fail('La contraseña debe tener entre 10 y 128 caracteres.');};
 const expiry=days=>{if(!Number.isInteger(days)||days<1||days>3650)fail('La duración debe ser de 1 a 3650 días.');return Date.now()+days*DAY;};
 const cookieName=url=>url.protocol==='https:'?COOKIE:'bilbobus-local';
 const setCookie=(url,token,age)=>`${cookieName(url)}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${url.protocol==='https:'?'; Secure':''}`;
-async function body(request){if(Number(request.headers.get('Content-Length')||0)>8192)fail('Petición demasiado grande.',413);const text=await request.text();if(text.length>8192)fail('Petición demasiado grande.',413);try{return JSON.parse(text);}catch{fail('Petición no válida.');}}
+async function body(request,max=8192){if(Number(request.headers.get('Content-Length')||0)>max)fail('Petición demasiado grande.',413);const text=await request.text();if(text.length>max)fail('Petición demasiado grande.',413);try{return JSON.parse(text);}catch{fail('Petición no válida.');}}
 async function session(request,env,url){const raw=request.headers.get('Cookie')||'';const token=raw.split(';').map(x=>x.trim()).find(x=>x.startsWith(cookieName(url)+'='))?.split('=')[1];if(!token)return null;const hash=await digest(token);const user=await env.DB.prepare('SELECT users.*, sessions.expires_at AS session_expiry FROM sessions JOIN users ON users.id=sessions.user_id WHERE token_hash=?').bind(hash).first();if(!user||!user.active||user.session_expiry<=Date.now()||(user.role!=='admin'&&(!user.expires_at||user.expires_at<=Date.now()))){await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(hash).run();return null;}return {...user,sessionHash:hash};}
 function requireAdmin(user){if(user.role!=='admin')fail('Solo el administrador puede realizar esta operación.',403);}
 async function handle(request,env){
@@ -45,6 +46,12 @@ async function handle(request,env){
  const user=await session(request,env,url);if(!user)fail('Inicia sesión con una cuenta vigente.',401);
  if(path==='/api/session'&&request.method==='GET')return json({user:publicUser(user),mode:'authenticated'});
  if(path==='/api/logout'&&request.method==='POST'){await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(user.sessionHash).run();return json({ok:true},200,{'Set-Cookie':setCookie(url,'',0)});}
+ if(path==='/api/password'&&request.method==='POST'){
+  const b=await body(request);checkPassword(b.password);
+  if(!await verifyPassword(String(b.currentPassword||''),user.password_hash))fail('La contraseña actual no es correcta.',403);
+  await env.DB.batch([env.DB.prepare('UPDATE users SET password_hash=? WHERE id=?').bind(await passwordHash(b.password),user.id),env.DB.prepare('DELETE FROM sessions WHERE user_id=?').bind(user.id)]);
+  return json({ok:true},200,{'Set-Cookie':setCookie(url,'',0)});
+ }
  if(path==='/api/admin/users'){
   requireAdmin(user);
   if(request.method==='GET'){const {results}=await env.DB.prepare('SELECT id,username,role,expires_at,active,created_at FROM users ORDER BY created_at DESC').all();return json({users:results.map(publicUser)});}
@@ -56,6 +63,13 @@ async function handle(request,env){
   const b=await body(request);if(!['days','active','password'].some(k=>k in b))fail('No hay cambios que aplicar.');
   const end=b.days===undefined?target.expires_at:expiry(Number(b.days));if(b.active!==undefined&&typeof b.active!=='boolean')fail('Estado no válido.');if(b.password!==undefined)checkPassword(b.password);
   await env.DB.batch([env.DB.prepare('UPDATE users SET password_hash=?, expires_at=?, active=? WHERE id=?').bind(b.password===undefined?target.password_hash:await passwordHash(b.password),end,b.active===undefined?target.active:Number(b.active),id),env.DB.prepare('DELETE FROM sessions WHERE user_id=?').bind(id)]);return json({ok:true});
+ }
+ if(path==='/api/routes'){
+  if(request.method==='POST')requireAdmin(user);
+  // Additive migration keeps existing user databases compatible with this release.
+  await env.DB.prepare(routesSchema).run();
+  if(request.method==='GET'){const {results}=await env.DB.prepare('SELECT payload FROM routes ORDER BY created_at DESC LIMIT 500').all();return json({routes:results.map(r=>JSON.parse(r.payload))});}
+  if(request.method==='POST'){const route=validateRoute(await body(request,400000));await env.DB.prepare('INSERT INTO routes(id,payload,created_by,created_at) VALUES(?,?,?,?)').bind(route.id,JSON.stringify(route),user.id,Date.now()).run();return json({route},201);}
  }
  if(path==='/api/media'&&request.method==='GET'){const {results}=await env.DB.prepare("SELECT id,filename,kind,line,direction,watermarked FROM media WHERE published=1 AND (kind!='video' OR watermarked=1)").all();return json({media:results});}
  const demo=path.match(/^\/api\/demo\/(0|1)$/);

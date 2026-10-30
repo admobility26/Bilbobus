@@ -37,3 +37,11 @@ Compilación de producción correcta. Pruebas locales con Worker y D1: rechazo a
 ## Compilación en Cloudflare Workers Builds
 
 El comando de despliegue puede mantenerse como `npx wrangler deploy`. La configuración de Wrangler ejecuta automáticamente `npm run build` antes de recoger los archivos de `dist`. No es necesario guardar `dist` en Git. Esta corrección evita el error de carpeta de assets inexistente; no sustituye la creación y vinculación de D1/R2 descrita arriba.
+
+## Actualización 30/10/2026
+
+La web bilbobus.admobility26.workers.dev utiliza ahora el Worker de acceso y la base D1 bilbobus-users. La configuración del repositorio apunta a estos recursos. El administrador dispone de «Mi contraseña». No se incluyen credenciales en Git.
+
+La biblioteca permite importar PDF con texto, revisar las paradas de las 56 líneas del catálogo oficial, seleccionar sentido y guardar el recorrido en D1. Los lectores vigentes pueden abrir los recorridos guardados. Los PDF escaneados requieren selección manual; no hay OCR. El documento original no se almacena: solo su nombre y las paradas revisadas. Solo se dibuja el trazado oficial cuando coincide toda la variante; en otro caso se muestran puntos.
+
+R2 y la subida persistente de vídeos siguen pendientes. No hay binding R2 activo; la carga de vídeo actual es local a la sesión. Las indicaciones anteriores de recursos pendientes se mantienen únicamente para esa biblioteca multimedia, no para usuarios y recorridos PDF ya activados.
