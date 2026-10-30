@@ -2,8 +2,8 @@ import React,{useEffect,useState} from 'react';
 import official from './official-routes.json';
 import {detectedStops,importedRoute} from './pdfStops.js';
 import {api} from './BilbobusAccess.jsx';
-export default function PdfRouteImport({demo,onSaved,onClose}){
- const [line,setLine]=useState('10'),[patternId,setPatternId]=useState(''),[text,setText]=useState(''),[filename,setFilename]=useState(''),[preview,setPreview]=useState(''),[title,setTitle]=useState(''),[rows,setRows]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[confirmed,setConfirmed]=useState(false);
+export default function PdfRouteImport({demo,onSaved,onClose,initialLine='10'}){
+ const [line,setLine]=useState(initialLine),[patternId,setPatternId]=useState(''),[text,setText]=useState(''),[filename,setFilename]=useState(''),[preview,setPreview]=useState(''),[title,setTitle]=useState(''),[rows,setRows]=useState([]),[busy,setBusy]=useState(false),[error,setError]=useState(''),[confirmed,setConfirmed]=useState(false);
  const patterns=official.lines.find(l=>l.number===line)?.patterns||[],pattern=patterns.find(p=>p.id===patternId)||patterns[0];
  useEffect(()=>{setRows(pattern?detectedStops(text,pattern):[]);setConfirmed(false);},[text,pattern]);
  useEffect(()=>()=>{if(preview)URL.revokeObjectURL(preview);},[preview]);

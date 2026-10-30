@@ -1,3 +1,4 @@
+import {attachments} from './attachments.js';
 import {validateRoute,routesSchema} from './routes.js';
 import {digest,passwordHash,verifyPassword} from './password.js';
 const DAY=86400000,COOKIE='__Host-bilbobus';
@@ -20,7 +21,7 @@ async function handle(request,env){
  if(path.startsWith('/assets/')&&/\.(mp4|gpx|pdf)$/i.test(path))return json({error:'Acceso directo a archivos deshabilitado.'},403);
  if(!path.startsWith('/api/'))return env.ASSETS.fetch(request);
  if(!env.DB)fail('El servicio de cuentas todavía no está configurado.',503);
- if(!['GET','HEAD'].includes(request.method)){if(request.headers.get('Origin')!==url.origin)fail('Origen de petición no autorizado.',403);if(!request.headers.get('Content-Type')?.startsWith('application/json'))fail('Se requiere JSON.',415);}
+ if(!['GET','HEAD'].includes(request.method)){if(request.headers.get('Origin')!==url.origin)fail('Origen de petición no autorizado.',403);if(!(request.method==='PUT'&&/^\/api\/routes\/[a-zA-Z0-9-]+\/files$/.test(path))&&!request.headers.get('Content-Type')?.startsWith('application/json'))fail('Se requiere JSON.',415);}
  if(path==='/api/setup'&&request.method==='POST'){
   if(!env.ADMIN_SETUP_TOKEN)fail('La creación del administrador no está habilitada.',403);
   const supplied=request.headers.get('Authorization')?.replace(/^Bearer /,'')||'';
@@ -44,6 +45,7 @@ async function handle(request,env){
   await env.DB.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)').bind(await digest(token),user.id,end).run();return json({user:publicUser(user),mode:'authenticated'},200,{'Set-Cookie':setCookie(url,token,Math.floor((end-now)/1000))});
  }
  const user=await session(request,env,url);if(!user)fail('Inicia sesión con una cuenta vigente.',401);
+ const fileResponse=await attachments(request,env,user,path,url);if(fileResponse)return fileResponse;
  if(path==='/api/session'&&request.method==='GET')return json({user:publicUser(user),mode:'authenticated'});
  if(path==='/api/logout'&&request.method==='POST'){await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(user.sessionHash).run();return json({ok:true},200,{'Set-Cookie':setCookie(url,'',0)});}
  if(path==='/api/password'&&request.method==='POST'){

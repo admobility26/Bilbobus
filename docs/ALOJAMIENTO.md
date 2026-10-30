@@ -45,3 +45,9 @@ La web bilbobus.admobility26.workers.dev utiliza ahora el Worker de acceso y la 
 La biblioteca permite importar PDF con texto, revisar las paradas de las 56 líneas del catálogo oficial, seleccionar sentido y guardar el recorrido en D1. Los lectores vigentes pueden abrir los recorridos guardados. Los PDF escaneados requieren selección manual; no hay OCR. El documento original no se almacena: solo su nombre y las paradas revisadas. Solo se dibuja el trazado oficial cuando coincide toda la variante; en otro caso se muestran puntos.
 
 R2 y la subida persistente de vídeos siguen pendientes. No hay binding R2 activo; la carga de vídeo actual es local a la sesión. Las indicaciones anteriores de recursos pendientes se mantienen únicamente para esa biblioteca multimedia, no para usuarios y recorridos PDF ya activados.
+
+## Fichas por línea y archivos (30/10/2026)
+
+Todas las líneas pueden seleccionarse en la biblioteca. Cada una agrupa sus recorridos por sentido. Desde su ficha se importa el PDF para detectar paradas; cada recorrido dispone de adjuntos PDF, GPX y MP4. Los archivos se transmiten mediante endpoints autenticados y solo el administrador puede subirlos o descargarlos. Al abrir un recorrido se carga el último GPX y vídeo guardados, o la versión seleccionada. Límite actual: 90 MB por archivo. Los MP4 deben prepararse con el logo ya grabado; la interfaz requiere confirmarlo y no afirma detectar o añadir la marca automáticamente.
+
+Cloudflare devolvió el error 10042: R2 no está habilitado en la cuenta. Las subidas permanecen desactivadas hasta activarlo y vincular un bucket privado como MEDIA. Los recorridos y paradas siguen guardándose en D1. Después de activar R2: crear bilbobus-private-media y añadir r2_buckets con binding MEDIA y bucket_name bilbobus-private-media a wrangler.jsonc. No habilitar acceso público al bucket. Validar subida y lectura real antes de anunciar que el almacenamiento está operativo.
