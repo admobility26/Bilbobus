@@ -66,6 +66,8 @@ async function handle(request,env){
   const end=b.days===undefined?target.expires_at:expiry(Number(b.days));if(b.active!==undefined&&typeof b.active!=='boolean')fail('Estado no válido.');if(b.password!==undefined)checkPassword(b.password);
   await env.DB.batch([env.DB.prepare('UPDATE users SET password_hash=?, expires_at=?, active=? WHERE id=?').bind(b.password===undefined?target.password_hash:await passwordHash(b.password),end,b.active===undefined?target.active:Number(b.active),id),env.DB.prepare('DELETE FROM sessions WHERE user_id=?').bind(id)]);return json({ok:true});
  }
+ const syncPath=path.match(/^\/api\/routes\/([a-zA-Z0-9-]+)\/sync$/);
+ if(syncPath&&request.method==='POST'){requireAdmin(user);const b=await body(request);if(!Number.isFinite(b.offset)||Math.abs(b.offset)>7200||typeof b.videoName!=='string'||typeof b.trackName!=='string'||b.videoName.length>255||b.trackName.length>255)fail('Sincronización no válida.');const saved=await env.DB.prepare('SELECT payload FROM routes WHERE id=?').bind(syncPath[1]).first();if(!saved)fail('Recorrido no encontrado.',404);const route=JSON.parse(saved.payload);route.sync={offset:b.offset,videoName:b.videoName,trackName:b.trackName};await env.DB.prepare('UPDATE routes SET payload=? WHERE id=?').bind(JSON.stringify(route),route.id).run();return json({ok:true});}
  if(path==='/api/routes'){
   if(request.method==='POST')requireAdmin(user);
   // Additive migration keeps existing user databases compatible with this release.

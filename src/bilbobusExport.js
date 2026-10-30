@@ -1,21 +1,22 @@
+import {routeFraction,exportLimit} from './videoSync.js';
 import {Map,LngLatBounds} from 'maplibre-gl';
-import {Input,UrlSource,ALL_FORMATS,CanvasSink,AudioSampleSink,AudioSampleSource,Output,Mp4OutputFormat,BufferTarget,CanvasSource,Quality,canEncodeVideo,canEncodeAudio} from 'mediabunny';
+import {Input,UrlSource,ALL_FORMATS,CanvasSink,AudioSampleSink,AudioSampleSource,Output,Mp4OutputFormat,BufferTarget,StreamTarget,CanvasSource,Quality,canEncodeVideo,canEncodeAudio} from 'mediabunny';
 import {pointAt,timeline} from './reviewTime.js';
 const abort=signal=>{if(signal?.aborted)throw new DOMException('Exportación cancelada.','AbortError');};
 const line=coordinates=>({type:'Feature',properties:{},geometry:{type:'LineString',coordinates}});
 const image=url=>new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('No se pudo cargar la carátula.'));img.src=url;});
 const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
-export async function exportBilbobusMp4({videoUrl,route,points,demoMode,offset=0,headerUrl,signal,onProgress}){
+export async function exportBilbobusMp4({videoUrl,route,points,demoMode,offset=0,headerUrl,signal,onProgress,fileHandle}){
  if(!videoUrl)throw Error('Carga un vídeo o vuelve a la simulación para exportar el recorrido.');
  if(!await canEncodeVideo('avc',{width:1280,height:720,frameRate:20}))throw Error('Este navegador no permite crear MP4 H.264. Abre la muestra en Chrome o Edge actualizado.');
  abort(signal);
- let input,output,exportMap,host,videoIterator,audioIterator,audioNext,done=false;
+ let input,output,exportMap,host,videoIterator,audioIterator,audioNext,disk,done=false;
  try{
   input=new Input({source:new UrlSource(videoUrl),formats:ALL_FORMATS});
   const videoTrack=await input.getPrimaryVideoTrack();
   if(!videoTrack||!await videoTrack.canDecode())throw Error('No se puede decodificar este vídeo para exportar. Prueba un MP4 H.264.');
   const duration=await videoTrack.computeDuration();
-  if(!(duration>0)||duration>300)throw Error('Esta muestra exporta vídeos de hasta 5 minutos. Para grabaciones largas se necesita guardado directo en disco.');
+  exportLimit(duration,!!fileHandle);
   const audioTrack=await input.getPrimaryAudioTrack();
   if(audioTrack&&(!await audioTrack.canDecode()||!await canEncodeAudio('aac',{sampleRate:48000,numberOfChannels:2})))throw Error('No se puede conservar el audio de este archivo en este navegador. Prueba Chrome o Edge.');
   onProgress({percent:0,label:'Preparando mapa y vídeo…'});
@@ -28,7 +29,7 @@ export async function exportBilbobusMp4({videoUrl,route,points,demoMode,offset=0
   const background=document.createElement('canvas');background.width=850;background.height=456;exportMap.triggerRepaint();await frame();await frame();background.getContext('2d').drawImage(exportMap.getCanvas(),0,0,850,456);background.toDataURL();
   const projected=points.map(p=>exportMap.project(p.coordinates));const stops=route.stops.map(s=>exportMap.project(s.coordinates));
   const canvas=document.createElement('canvas');canvas.width=1280;canvas.height=720;const ctx=canvas.getContext('2d');
-  const target=new BufferTarget();output=new Output({format:new Mp4OutputFormat({fastStart:'in-memory'}),target});
+  disk=fileHandle?await fileHandle.createWritable():null;const target=disk?new StreamTarget(new WritableStream({write:chunk=>disk.write(chunk)}),{chunked:true,chunkSize:4*1024*1024}):new BufferTarget();output=new Output({format:new Mp4OutputFormat({fastStart:disk?false:'in-memory'}),target});
   const source=new CanvasSource(canvas,{codec:'avc',quality:new Quality({bitrate:3500000}),keyFrameInterval:2});output.addVideoTrack(source,{frameRate:20});
   let audioSource;
   if(audioTrack){audioSource=new AudioSampleSource({codec:'aac',quality:new Quality({bitrate:128000}),transform:{sampleRate:48000,numberOfChannels:2}});output.addAudioTrack(audioSource);audioIterator=new AudioSampleSink(audioTrack).samples(0,duration);audioNext=await audioIterator.next();}
@@ -37,7 +38,7 @@ export async function exportBilbobusMp4({videoUrl,route,points,demoMode,offset=0
   const clock=timeline(points);let index=0;
   const text=(value,x,y,size,color='#24353b',bold=false)=>{ctx.fillStyle=color;ctx.font=`${bold?'bold ':''}${size}px Arial`;ctx.fillText(value,x,y);};
   for await(const decoded of videoIterator){
-   abort(signal);if(!decoded)throw Error('Falta un fotograma del vídeo.');const t=index/20,dt=Math.min(.05,duration-t),fraction=Math.max(0,Math.min(1,!demoMode&&clock.timed?(t-offset)/clock.duration:t/duration));const pos=pointAt(points,fraction,clock),loc=exportMap.project(pos.point.coordinates);
+   abort(signal);if(!decoded)throw Error('Falta un fotograma del vídeo.');const t=index/20,dt=Math.min(.05,duration-t),fraction=Math.max(0,Math.min(1,!demoMode&&clock.timed?routeFraction(t,offset,clock.duration):t/duration));const pos=pointAt(points,fraction,clock),loc=exportMap.project(pos.point.coordinates);
    const active=demoMode?Math.min(route.stops.length-1,Math.floor((t+.015)/4)):route.stops.reduce((best,s,i)=>Math.hypot(stops[i].x-loc.x,stops[i].y-loc.y)<Math.hypot(stops[best].x-loc.x,stops[best].y-loc.y)?i:best,0);
    ctx.fillStyle='#f5f5f2';ctx.fillRect(0,0,1280,720);ctx.drawImage(header,0,0,1280,206);
    text(`LÍNEA ${route.line||'10'}  ·  ${route.name}`,24,238,19,'#263b43',true);text(demoMode?'SIMULACIÓN · escena y tiempos ilustrativos':'RECORRIDO · vídeo y mapa',896,238,13,'#cf372c',true);
@@ -55,6 +56,6 @@ export async function exportBilbobusMp4({videoUrl,route,points,demoMode,offset=0
    await source.add(t,dt);index++;if(index%10===0){onProgress({percent:Math.round(index/count*99),label:'Creando MP4 con mapa y vídeo…'});await new Promise(r=>setTimeout(r,0));}
   }
   if(audioSource){while(audioNext&&!audioNext.done){abort(signal);const sample=audioNext.value;try{await audioSource.add(sample);}finally{sample.close();}audioNext=await audioIterator.next();}audioSource.close();}
-  source.close();abort(signal);onProgress({percent:99,label:'Finalizando archivo…'});await output.finalize();abort(signal);done=true;return new Blob([target.buffer],{type:'video/mp4'});
- }finally{if(!done)await output?.cancel().catch(()=>{});await videoIterator?.return().catch(()=>{});if(audioNext&&!audioNext.done)audioNext.value.close();await audioIterator?.return().catch(()=>{});input?.dispose();exportMap?.remove();host?.remove();}
+  source.close();abort(signal);onProgress({percent:99,label:'Finalizando archivo…'});await output.finalize();abort(signal);if(disk)await disk.close();done=true;return disk?null:new Blob([target.buffer],{type:'video/mp4'});
+ }finally{if(!done){await output?.cancel().catch(()=>{});await disk?.abort().catch(()=>{});}await videoIterator?.return().catch(()=>{});if(audioNext&&!audioNext.done)audioNext.value.close();await audioIterator?.return().catch(()=>{});input?.dispose();exportMap?.remove();host?.remove();}
 }
