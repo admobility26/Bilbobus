@@ -5,13 +5,13 @@ export async function attachments(request,env,user,path,url){
  const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
  if(!await env.DB.prepare('SELECT id FROM routes WHERE id=?').bind(routeId).first())return reply({error:'Recorrido no encontrado.'},404);
  await env.DB.prepare(schema).run();
- if(!id&&request.method==='GET'){const {results}=await env.DB.prepare('SELECT id,kind,filename,size FROM attachments WHERE route_id=? ORDER BY created_at DESC').bind(routeId).all();return reply({files:results,storageReady:!!env.MEDIA});}
+ if(!id&&request.method==='GET'){const {results}=await env.DB.prepare('SELECT id,kind,filename,size FROM attachments WHERE route_id=? ORDER BY created_at DESC').bind(routeId).all();return reply({files:results,storageReady:!!env.MEDIA,maxUploadBytes:env.MAX_UPLOAD_BYTES||90*1024*1024});}
  if(request.method==='PUT'){
   if(user.role!=='admin')return reply({error:'Solo el administrador puede subir archivos.'},403);
   if(!env.MEDIA)return reply({error:'Activa R2 y conecta el almacén privado para guardar archivos.'},503);
   const kind=url.searchParams.get('kind'),filename=url.searchParams.get('filename')||'',type={'pdf':'application/pdf','gpx':'application/gpx+xml','video':'video/mp4'}[kind];
   const size=Number(request.headers.get('Content-Length'));
-  if(id||!type||!filename||filename.length>255||!Number.isInteger(size)||size<=0||size>90*1024*1024)return reply({error:'Archivo no válido. Límite de subida: 90 MB.'},400);
+  if(id||!type||!filename||filename.length>255||!Number.isInteger(size)||size<=0||size>(env.MAX_UPLOAD_BYTES||90*1024*1024))return reply({error:'Archivo no válido o superior al límite de subida.'},400);
   if(kind==='video'&&request.headers.get('X-Bilbobus-Watermarked')!=='yes')return reply({error:'El vídeo debe tener el logo Bilbobus grabado antes de publicarse.'},400);
   const fileId=crypto.randomUUID(),key=`routes/${routeId}/${fileId}`;
   await env.MEDIA.put(key,request.body,{httpMetadata:{contentType:type}});

@@ -10,3 +10,6 @@ exports/
 private-media/
 .wrangler/
 .dev.vars
+
+datos-locales/
+paquetes/

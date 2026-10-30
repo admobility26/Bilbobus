@@ -1,0 +1,17 @@
+# Biblioteca local trasladable
+
+Requiere Node.js 24. Con el código fuente: npm ci y npm run build. Después: npm start. Abre http://127.0.0.1:5190. Este modo pide contraseña y guarda usuarios, recorridos y archivos. El antiguo ABRIR-MUESTRA.command es solo la demostración sin cuentas.
+
+El primer arranque crea admin y una contraseña aleatoria en datos-locales/ACCESO-ADMIN.txt. Cámbiala en Mi contraseña. Esta carpeta es privada, está excluida de Git y no se publica en Cloudflare.
+
+En Biblioteca selecciona la línea, incorpora el PDF y revisa su sentido/paradas. En la ficha del recorrido añade el PDF original, MP4 y GPX opcional. El límite local es 2 GB por archivo; el vídeo debe llevar el logo grabado. Los mapas base siguen requiriendo Internet. Las paradas y trazados oficiales están incluidos en la aplicación. No es un paquete de cartografía sin conexión.
+
+## Exportar
+
+Detén el servidor antes de copiar/exportar la biblioteca. Ejecuta npm run package:local para exportar la aplicación. Ejecuta python3 scripts/package-local.py --with-data para incluir la biblioteca y cuentas existentes. El ZIP privado incluye contraseñas cifradas mediante derivación, sesiones y documentos privados: entrégalo solo al responsable del servidor. No incluye el archivo de contraseña inicial.
+
+En el servidor de destino, descomprime el paquete, instala Node.js 24 y ejecuta node server/local.mjs. No requiere Cloudflare, R2 ni instalar dependencias para ejecutar el servidor empaquetado. Conserva datos-locales en disco persistente y realiza copias de seguridad.
+
+Para acceso externo, el administrador del servidor debe configurar HTTPS mediante proxy inverso, BILBOBUS_ORIGIN=https://dominio-elegido y BILBOBUS_HOST=127.0.0.1 (proxy en la misma máquina). Ajustar el límite de subida del proxy, el cortafuegos, arranque automático y copias. No publiques la carpeta datos-locales como contenido web. Validar rendimiento y acceso externo antes de entregar a usuarios.
+
+La muestra se completará con dos recorridos y cuatro vídeos proporcionados por el administrador; no se crean grabaciones reales ficticias.
